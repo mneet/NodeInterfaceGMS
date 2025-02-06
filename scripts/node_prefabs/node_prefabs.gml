@@ -1,14 +1,13 @@
-function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name) constructor
+function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name, _origin) constructor
 {
 	add_component_renderer();
 	add_component_processor();	
-	
-	origin = _origin;
+
 	node_active = false;
 	navigable = _navigable;
 	
-	sound_select = snd_button_select_pop;
-	sound_click = snd_interface_button_confirm;
+	sound_select = noone;
+	sound_click = noone;
 	sound_sel_played = false;
 	sound_click_played = false;
 	
@@ -51,7 +50,7 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 	sub_img = 0;
 	animate = false;
 	color = c_white;
-	sprite_scale = transform.scale;	
+	sprite_scale = new Vector2(1,1);	
 	
 	#endregion
 	
@@ -113,16 +112,17 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 				if (!node_check_cursor_navigation())
 				{
 					_processor.mouse_hover = true;
+					_node.node_active = _node.navigator.selected;
 					return;
 				}
 			
 				var _cursor = input_get_cursor();
 			
-				var _node_origin_x = _node.transform.fixed_position.x + _node.system_origin_offset.x + _node.transform.offset.x,
-					_node_origin_y = _node.transform.fixed_position.y + _node.system_origin_offset.y + _node.transform.offset.y;
+				var _node_origin_x = _node.transform.position.x + _node.system_origin_offset.x,
+					_node_origin_y = _node.transform.position.y + _node.system_origin_offset.y;
 			
-				var _node_x_2 = _node_origin_x + _node.transform.size.x,
-					_node_y_2 = _node_origin_y + _node.transform.size.y;
+				var _node_x_2 = _node_origin_x + _node.transform.fixed.size.x,
+					_node_y_2 = _node_origin_y + _node.transform.fixed.size.y;
 			
 				var _mouse_check = point_in_rectangle(_cursor.x, _cursor.y, _node_origin_x, _node_origin_y, _node_x_2, _node_y_2);
 			
@@ -155,6 +155,8 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 	
 	#region UTILITY
 	
+	///@function			set_click_action(_click_function)
+	///@description			Add a function to run when the node is clicked
 	static set_click_action = function(_click_function)
 	{
 		if (processor != noone)
@@ -189,8 +191,8 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 		alignment_v = fa_middle;
 	
 		separation = -1;
-		text_box = transform.size;
-		}
+		text_box = transform.fixed.size;
+	}
 	
 	///@function			node_text_set_alignment(_horizontal, _vertical)
 	static node_text_set_alignment = function(_horizontal, _vertical)
@@ -221,11 +223,11 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 		return self;
 	}	
 	
-	///@function						node_text_set_box(_x, _y)
+	///@function						node_text_set_box(_w, _h)
 	///@description						Define the text box size
-	static node_text_set_box = function(_x, _y)
+	static node_text_set_box = function(_w, _h)
 	{		
-		text_box = new Vector2(_x, _y);	
+		text_box = new Vector2(_w, _h);	
 	}
 			
 	///@function						node_text_set_scale(_xscale, _yscale)
@@ -360,7 +362,7 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 			draw_set_halign(_node.alignment_h);
 
 			// Drawing text
-			draw_text_outlined(
+			draw_text_ext_transformed_color(
 				_text_x, 
 				_text_y, 
 				_node.text, 
@@ -388,14 +390,14 @@ function node_button(_name, _navigable = true, _origin = NODE_ORIGIN.MIDDLE_CENT
 
 }
 
-///@function							node_prefab_text(_text, _font, _color, _outline)
+///@function							node_text(_text, _font, _color, _outline)
 ///@description							Prefab node made for drawing text elements
 ///@param {string} _name				Node name
 ///@param {string} _text				String to be drawed
 ///@param {Asset.GMFont, string} _font	Text font
 ///@param {Constant.Color} _color		Text color
 ///@param {bool} _outline				If the text should be drawed with an outline
-function node_prefab_text(_name, _text, _font, _color, _outline = true) : node(_name) constructor 
+function node_text(_name, _text, _font, _color, _outline = true) : node(_name) constructor 
 {
 	text_key = _text;
 	text =  language_get_localized_text(_text);
@@ -429,7 +431,7 @@ function node_prefab_text(_name, _text, _font, _color, _outline = true) : node(_
 			var _x = _node.transform.position.x,
 				_y = _node.transform.position.y;
 			
-			var _text = _node.text,
+			var _text = get_localized_text(_node.text),
 				_font = _node.font;
 			
 			if (!_node.text_calculated)
@@ -476,7 +478,7 @@ function node_prefab_text(_name, _text, _font, _color, _outline = true) : node(_
 			// Drawing text
 			if (_node.outline)
 			{
-				draw_text_outlined(_x, _y, _text, -1, _h_wrap, _xscale, _yscale, _rot,_color1, _color2, _color3, _color4, _alpha);
+				draw_text_ext_transformed_color(_x, _y, _text, -1, _h_wrap, _xscale, _yscale, _rot,_color1, _color2, _color3, _color4, _alpha);
 			}
 			else
 			{
@@ -494,7 +496,7 @@ function node_prefab_text(_name, _text, _font, _color, _outline = true) : node(_
 	
 	#region UPDATE
 	
-	///@function		update()
+	///		update()
 	///@descriptions	Update the button variables when needed, example: Language or input mode change
 	update = function()
 	{
@@ -534,13 +536,13 @@ function node_prefab_text(_name, _text, _font, _color, _outline = true) : node(_
 }
 
 
-///@function						node_prefab_sprite(_text, _font, _color, _outline)
+///@function						node_sprite(_text, _font, _color, _outline)
 ///@description						Prefab node made for drawing sprites
 ///@param {string} _name			Node name
 ///@param {Asset.GMSprite} _sprite	Sprite asset do be drawed
 ///@param {Constant.Color} _color	Sprite color
 ///@param {bool} _animate			If the sprite subimg should be animated
-function node_prefab_sprite(_name, _sprite, _color = c_white, _animate = false) : node(_name) constructor 
+function node_sprite(_name, _sprite, _color = c_white, _animate = false) : node(_name) constructor 
 {
 	// Sprite attributes
 	sprite = _sprite;

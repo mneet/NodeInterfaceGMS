@@ -1,4 +1,4 @@
-function __node_container(_name) : node(_name) constructor
+function __node_container(_name, _origin  = NODE_ORIGIN.MIDDLE_CENTER) : node(_name, _origin) constructor
 {
 	pattern = noone;
 	type = noone;
@@ -9,9 +9,52 @@ function __node_container(_name) : node(_name) constructor
 	add_component_renderer();	
 	add_component_processor();
 	
-	#region DISTRIBUTE
+	///@function				__container_organize()
+	///@description				Organize nested nodes in the right pattern
+	__container_organize = function()
+	{
+		// DO SOMETHING	
+	}
 	
-	static __container_organize_horizontaly = function()
+	#region UTILITY
+	
+	///@function				container_set_margin(_x, _y)
+	///@description				Set the margin between nodes
+	///@param {real} _x			Horizontal margin 
+	///@param {real} _y			Vertical margin
+	static container_set_margin = function(_x, _y)
+	{
+		margin.x = _x;
+		margin.y = _y;
+		
+		start_margin = variable_clone(margin);
+		return self;
+	}
+	
+	#endregion
+		
+	custom_awake = function()
+	{
+		margin.x = start_margin.x * transform.scale.x;
+		margin.y = start_margin.y * transform.scale.y;
+		
+		__container_organize();		
+		__node_get_system_origin_offset();
+	}
+}
+
+///@function						node_container_horizontal(_name, _origin, _pattern)
+///@description						Create an container node that distributes its nested nodes in an horizontal box
+///@param {string} _name			Name used for identify the node
+///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_HORIZONTAL_PATTERN enum
+///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
+function node_container_horizontal(_name, _pattern = NODE_HORIZONTAL_PATTERN.LEFT_RIGHT, _origin = NODE_ORIGIN.MIDDLE_CENTER) : __node_container(_name, _origin) constructor
+{
+	pattern = _pattern;
+	type = NODE_CONTAINER.HORIZONTAL;	
+	origin = _origin;
+	
+	__container_organize = function()
 	{
 		var _container_w = 0,
 			_container_h = 0;
@@ -19,8 +62,8 @@ function __node_container(_name) : node(_name) constructor
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];
-			_container_h = _node.transform.size.y > _container_h ? _node.transform.size.y : _container_h;
-			_container_w += _node.transform.size.x;
+			_container_h = _node.transform.fixed.size.y > _container_h ? _node.transform.fixed.size.y : _container_h;
+			_container_w += _node.transform.fixed.size.x;
 			_container_w += _i > 0 ?  margin.x : 0;
 		}
 		
@@ -39,19 +82,20 @@ function __node_container(_name) : node(_name) constructor
 			
 			var _x = (system_origin_offset.x) + (_node_origin_x * -1);
 			var _y = (_node_converted_origin.y * -1);
-
+			
+			show_debug_message(transform.fixed.size)
 			switch (pattern)
 			{
 				case NODE_HORIZONTAL_PATTERN.LEFT_RIGHT:
 					_filled_width += _i > 0 ?  margin.x : 0;
 					_x += (_filled_width);
-					_filled_width += _node.transform.size.x;
+					_filled_width += _node.transform.fixed.size.x;
 					break;
 				
 				case NODE_HORIZONTAL_PATTERN.RIGHT_LEFT:
 					_filled_width += _i > 0 ?  margin.x : 0;
 					_x += (transform.size.x - _node.transform.size.x) - (_filled_width);
-					_filled_width += _node.transform.size.x;
+					_filled_width += _node.transform.fixed.size.x;
 					break;				
 			}
 			
@@ -61,7 +105,19 @@ function __node_container(_name) : node(_name) constructor
 		}
 	}
 	
-	static __container_organize_verticaly = function()
+}
+
+///@function						node_container_vertical(_name, _origin, _pattern)
+///@description						Create an container node that distributes its nested nodes in an vertical box
+///@param {string} _name			Name used for identify the node
+///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_VERTICAL_PATTERN enum
+///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
+function node_container_vertical(_name, _pattern = NODE_VERTICAL_PATTERN.UP_DOWN, _origin = NODE_ORIGIN.MIDDLE_CENTER) : __node_container(_name, _origin) constructor
+{
+	pattern = _pattern;
+	type = NODE_CONTAINER.VERTICAL;	
+	
+	__container_organize = function()
 	{
 		var _container_w = 0,
 			_container_h = 0;
@@ -69,8 +125,8 @@ function __node_container(_name) : node(_name) constructor
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];
-			_container_w = _node.transform.size.y > _container_w ? _node.transform.size.x : _container_w;
-			_container_h += _node.transform.size.y;
+			_container_w = _node.transform.fixed.size.y > _container_w ? _node.transform.fixed.size.x : _container_w;
+			_container_h += _node.transform.fixed.size.y;
 			_container_h += _i > 0 ?  margin.y : 0;
 		}
 		
@@ -95,13 +151,13 @@ function __node_container(_name) : node(_name) constructor
 				case NODE_VERTICAL_PATTERN.UP_DOWN:
 					_filled_height += _i > 0 ?  margin.y : 0;
 					_y += (_filled_height);
-					_filled_height += _node.transform.size.y;
+					_filled_height += _node.transform.fixed.size.y;
 					break;
 				
 				case NODE_VERTICAL_PATTERN.DOWN_UP:
 					_filled_height += _i > 0 ?  margin.x : 0;
-					_y += (transform.size.y - _node.transform.size.y) - (_filled_height);
-					_filled_height += _node.transform.size.y;
+					_y += (transform.fixed.size.y - _node.transform.fixed.size.y) - (_filled_height);
+					_filled_height += _node.transform.fixed.size.y;
 					break;				
 			}
 			
@@ -111,7 +167,26 @@ function __node_container(_name) : node(_name) constructor
 		}
 	}
 
-	static __container_organized_grid = function()
+}
+
+///@function						node_container_grid(_name, _origin, _pattern)
+///@description						Create an container node that distributes its nested nodes in an vertical box
+///@param {string} _name			Name used for identify the node
+///@param {struct} _grid_dimension	Number of rows and columns of the grid in a Vector2
+///@param {struct} _cell_size		Size in pixels of each cell using an Vector2
+///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_GRID_PATTERN enum
+///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
+function node_container_grid(_name, _grid_dimension, _cell_size, _pattern = NODE_GRID_PATTERN.RIGHT_DOWN, _origin = NODE_ORIGIN.MIDDLE_CENTER) : __node_container(_name,_origin) constructor
+{
+	pattern = _pattern;
+	type = NODE_CONTAINER.GRID;	
+	
+	grid_dimension = _grid_dimension;
+	grid_cell_size = _cell_size;
+	grid_size = new Vector2(0,0);
+	
+	
+	__container_organize = function()
 	{
 		grid_size.x = (grid_cell_size.x * grid_dimension.x) + (margin.x * grid_dimension.x) - margin.x;
 		grid_size.y = (grid_cell_size.y * grid_dimension.y) + (margin.y * grid_dimension.y) - margin.y;
@@ -165,86 +240,4 @@ function __node_container(_name) : node(_name) constructor
 			}	
 		}
 	}
-
-	static __container_organize = function()
-	{
-		switch (type)
-		{
-			case NODE_CONTAINER.HORIZONTAL:
-				__container_organize_horizontaly();
-				break;
-			case NODE_CONTAINER.VERTICAL:
-				__container_organize_verticaly();
-				break;
-			case NODE_CONTAINER.GRID:
-				__container_organized_grid();
-				break;
-		}
-	}	
-	
-	#endregion
-	
-	#region UTILITY
-	
-	static container_set_margin = function(_x, _y)
-	{
-		margin.x = _x;
-		margin.y = _y;
-		
-		start_margin = variable_clone(margin);
-		return self;
-	}
-	
-	#endregion
-		
-	custom_awake = function()
-	{
-		margin.x = start_margin.x * transform.scale.x;
-		margin.y = start_margin.y * transform.scale.y;
-		
-		__container_organize();		
-		__node_get_system_origin_offset();
-	}
-}
-
-///@function						node_container_horizontal(_name, _origin, _pattern)
-///@description						Create an container node that distributes its nested nodes in an horizontal box
-///@param {string} _name			Name used for identify the node
-///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
-///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_HORIZONTAL_PATTERN enum
-function node_container_horizontal(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER, _pattern = NODE_HORIZONTAL_PATTERN.LEFT_RIGHT) : __node_container(_name) constructor
-{
-	pattern = _pattern;
-	type = NODE_CONTAINER.HORIZONTAL;	
-	origin = _origin;
-}
-
-///@function						node_container_vertical(_name, _origin, _pattern)
-///@description						Create an container node that distributes its nested nodes in an vertical box
-///@param {string} _name			Name used for identify the node
-///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
-///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_VERTICAL_PATTERN enum
-function node_container_vertical(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER, _pattern = NODE_VERTICAL_PATTERN.UP_DOWN) : __node_container(_name) constructor
-{
-	pattern = _pattern;
-	type = NODE_CONTAINER.VERTICAL;	
-	origin = _origin;
-}
-
-///@function						node_container_grid(_name, _origin, _pattern)
-///@description						Create an container node that distributes its nested nodes in an vertical box
-///@param {string} _name			Name used for identify the node
-///@param {struct} _grid_dimension	Number of rows and columns of the grid in a Vector2
-///@param {struct} _cell_size		Size in pixels of each cell using an Vector2
-///@param {real} [_origin]			Determines the anchor point of the node using NODE_ORIGIN enum
-///@param {real} [_pattern]			Pattern that nested nodes will be placed using NODE_VERTICAL_PATTERN enum
-function node_container_grid(_name, _grid_dimension, _cell_size, _origin = NODE_ORIGIN.MIDDLE_CENTER, _pattern = NODE_GRID_PATTERN.RIGHT_DOWN) : __node_container(_name) constructor
-{
-	pattern = _pattern;
-	type = NODE_CONTAINER.GRID;	
-	origin = _origin;
-	
-	grid_dimension = _grid_dimension;
-	grid_cell_size = _cell_size;
-	grid_size = new Vector2(0,0);
 }

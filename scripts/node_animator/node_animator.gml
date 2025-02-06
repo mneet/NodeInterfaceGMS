@@ -7,14 +7,18 @@ function __node_animator() constructor
 	
 	restart_anim = false;
 	
-	ac_enter = new __node_animator_ac_control();
-	ac_leave = new __node_animator_ac_control();
-	ac_idle = new __node_animator_ac_control();
+	ac_enter = new __node_animator_ac_control(EASING_CURVES.LINEAR);
+	ac_leave = new __node_animator_ac_control(EASING_CURVES.LINEAR);
+	ac_idle = new __node_animator_ac_control(EASING_CURVES.LINEAR);
+	ac_out = new __node_animator_ac_control(EASING_CURVES.LINEAR);
+	ac_restart = new __node_animator_ac_control(EASING_CURVES.LINEAR);
 	
 	event_state = [];
 	
 	#region STATE MACHINE
 	
+	///@function		state_machine_brain(_node)
+	///@description		State machine controller
 	static state_machine_brain = function(_node)
 	{	
 		var _animator = _node.animator;		
@@ -23,27 +27,29 @@ function __node_animator() constructor
 		switch (_animator.motion_state)
 		{
 			case NODE_MOTION_STATE.ENTER:
-				_animator.state_motion_enter(_node,_animator);
+				_animator.state_motion_enter(_node, _animator.ac_enter);
 				break;
 			
 			case NODE_MOTION_STATE.IDLE:
-				_animator.state_motion_idle(_node, _animator);
+				_animator.state_motion_idle(_node, _animator.ac_idle);
 				break;
 			
 			case NODE_MOTION_STATE.LEAVE:
-				_animator.state_motion_leave(_node, _animator);
+				_animator.state_motion_leave(_node, _animator.ac_leave);
 				break;
 			
 			case NODE_MOTION_STATE.OUT:
-				_animator.state_motion_out(_node, _animator);
+				_animator.state_motion_out(_node, _animator.ac_out);
 				break;
 				
 			case NODE_MOTION_STATE.RESTART:
-				_animator.state_motion_restart(_node, _animator);
+				_animator.state_motion_restart(_node, _animator.ac_restart);
 				break;
 		}
 	}
 	
+	///@function		state_motion_enter(_node)
+	///@description		State behaviour when enter
 	state_motion_enter = function(_node, _animator)
 	{
 		if (!motion_state_set)
@@ -54,11 +60,15 @@ function __node_animator() constructor
 		}
 	}
 	
+	///@function		state_motion_idle(_node)
+	///@description		State behaviour when idle
 	state_motion_idle = function(_node, _animator)
 	{
 		
 	}
 	
+	///@function		state_motion_leave(_node)
+	///@description		State behaviour when leave
 	state_motion_leave = function(_node, _animator)
 	{
 		if (!motion_state_set)
@@ -67,18 +77,18 @@ function __node_animator() constructor
 			call_function_when_complete();			
 			if (!restart_anim)
 			{
-				show_debug_message("OUT");
 				animator_change_state(NODE_MOTION_STATE.OUT);
 			}
 			else 
 			{
-				show_debug_message("UPDATE");
 				owner.update();
 				animator_change_state(NODE_MOTION_STATE.ENTER);
 			}
 		}
 	}
 	
+	///@function		state_motion_restart(_node)
+	///@description		State behaviour when restart
 	state_motion_restart = function(_node, _animator)
 	{
 		if (!motion_state_set)
@@ -90,6 +100,8 @@ function __node_animator() constructor
 		}
 	}
 	
+	///@function		state_motion_out(_node)
+	///@description		State behaviour when out
 	state_motion_out = function(_node, _animator)
 	{		
 		if (!motion_state_set)
@@ -99,12 +111,16 @@ function __node_animator() constructor
 			call_function_when_complete();
 		}
 	}
-		
+	
+	///@function		state_trigger(_node)
+	///@description		Trigger states absed on custom events
 	state_trigger = function(_node, _animator)
 	{
 			
 	}
 	
+	///@function		animator_change_state(_node)
+	///@description		Change state machine state and call a function at end
 	animator_change_state = function(_state, _execute_at_end = noone)
 	{
 		if (_state != motion_state)
@@ -116,10 +132,36 @@ function __node_animator() constructor
 			complete_state_function = _execute_at_end;
 			
 			__animator_execute_events(_state);
+		
+			switch (motion_state)
+			{
+				case NODE_MOTION_STATE.ENTER:
+					ac_enter.reset_control();
+					break;
+			
+				case NODE_MOTION_STATE.IDLE:
+					ac_idle.reset_control();
+					break;
+			
+				case NODE_MOTION_STATE.LEAVE:
+					ac_leave.reset_control();
+					break;
+			
+				case NODE_MOTION_STATE.OUT:
+					ac_out.reset_control();
+					break;
+				
+				case NODE_MOTION_STATE.RESTART:
+					ac_restart.reset_control();
+					break;
+			}
+			
 		}
 		return self;
 	}
 	
+	///@function		call_function_when_complete()
+	///@description		Call at end function
 	call_function_when_complete = function()
 	{
 		if (complete_state_function != noone)
@@ -144,6 +186,7 @@ function __node_animator() constructor
 			case NODE_MOTION_STATE.LEAVE: state_motion_leave = _function; break;	
 			case NODE_MOTION_STATE.OUT: state_motion_out = _function; break;	
 		}
+		return self;
 	}
 	
 	///@function		set_state_trigger(_function)
@@ -154,20 +197,29 @@ function __node_animator() constructor
 		return self;
 	}
 	
-	///@function		set_default_anim_scale(_state, _curve, _channel, _timer_max, _delay)
-	static set_default_anim_scale = function(_state, _curve = ac_defaults, _channel = 0, _timer_max = 0.3, _delay = 0)
+	///@function		set_default_anim_scale(_state, _curve, _value_to, _timer_max, _delay)
+	static set_default_anim_scale = function(_state, _curve, _value_to, _timer_max = 0.3, _delay = 0)
 	{
+		var _controller =  new __node_animator_ac_control(_curve, _timer_max, _delay);
+		
+		// Calculando valores para função de Easing
+		_controller.value_to = _value_to;
+
+		// Define animação padrão de escala
+		set_state_motion(_state, global.node_animator_db.simple_scale_animation);
+		
 		switch (_state)
 		{
 			case NODE_MOTION_STATE.ENTER:
-				ac_enter = new __node_animator_ac_control(_curve, _channel, _timer_max, _delay);
-				set_state_motion(_state, global.node_animator_db.ac_scale_enter);
+				ac_enter = variable_clone(_controller);			
 				break;
 			case NODE_MOTION_STATE.LEAVE:
-				ac_leave = new __node_animator_ac_control(_curve, _channel, _timer_max, _delay);
-				set_state_motion(_state, global.node_animator_db.ac_scale_leave);
+				ac_leave = variable_clone(_controller);
 				break;	
-		}
+			case NODE_MOTION_STATE.IDLE:
+				ac_idle = variable_clone(_controller);
+				break;	
+		}	
 	}
 	
 	///@function		motion_state_compare(_state)
@@ -186,12 +238,16 @@ function __node_animator() constructor
 		event_state[_i] = [];
 	}
 	
+	///@function		animator_bind_event(_state, _event_funct)
+	///@description		Bind an function to run every time an state starts
 	static animator_bind_event = function(_state, _event_funct)
 	{
 		array_push(event_state[_state], _event_funct);
 		return self;
 	}
 	
+	///@function		__animator_execute_events(_state)
+	///@description		Execute state event functions
 	static __animator_execute_events = function(_state)
 	{
 		for (var _i = 0; _i < array_length(event_state[_state]); _i++)
@@ -204,212 +260,85 @@ function __node_animator() constructor
 	#endregion
 }
 
-function __node_animator_ac_control(_curve = ac_defaults, _channel = 0, _timer_max = .3, _start_delay = 0) constructor
+function __node_animator_ac_control(_curve, _timer_max = .3, _start_delay = 0) constructor
 {
 	curve = _curve;
-	channel = _channel;
-	channel_ind = _channel;
+	
 	timer_max = _timer_max;
-	
-	timer_delay_max = _start_delay
-	timer_delay = _start_delay
-	
 	timer = 0;
-	progress = 0;
+	
+	value_start = 0;
+	value_to = 0;
+	value_diff = 0;
+	
+	timer_delay_max = _start_delay;
+	timer_delay = _start_delay;
+	
+	animation_completed = false;
+	value_calculated  = false;
+	
+	reset_control = function()
+	{
+		value_start = 0;
+		value_diff = 0;
+		
+		animation_completed = false;
+		value_calculated  = false;
+		
+		timer_delay = timer_delay_max;
+		timer = 0;
+	}	
 }
 
 global.node_animator_db = {};
 with (global.node_animator_db)
-{
-	slide_out_left = function(_node, _animator)
-	{
-		var _x_out = -100;
-		_node.transform.position.x = lerp(_node.transform.position.x, _x_out, 0.1);
-		_node.update_nested_transform();	
-		
-		if (abs(_node.transform.position.x - _x_out) < 1)
+{	
+	simple_scale_animation = function(_node, _event_ctrl)
+	{		
+		// Checa se a animação já completou
+		if (!_event_ctrl.animation_completed)
 		{
-			_node.transform.position.x = _x_out;
-			_animator.animator_change_state(NODE_MOTION_STATE.OUT);	
-		}
-	}
-	
-	slide_out_right = function(_node, _animator)
-	{
-		var _x_out = GUI_WIDTH + 100;
-		
-		_node.transform.position.x = lerp(_node.transform.position.x, _x_out, 0.02);
-		_node.update_nested_transform();	
-		
-		if (abs(_node.transform.position.x - _x_out) < 1)
-		{
-			_node.transform.position.x =_node.transform.position.x;
-			_animator.animator_change_state(NODE_MOTION_STATE.OUT);	
-		}
-	}
-	
-	slide_out_up = function(_node, _animator)
-	{
-		var  _y_out = -(_node.transform.fixed_size.y + _node.system_origin_offset.x * -1);
-		_node.transform.position.y = lerp(_node.transform.position.y, _y_out, 0.1);
-		_node.update_nested_transform();	
-		
-		if (_node.transform.position.y - _y_out < 1)
-		{
-			_node.transform.position.y = _y_out;
-			_animator.animator_change_state(NODE_MOTION_STATE.OUT);	
-		}
-	}
-	
-	slide_out_down = function(_node, _animator)
-	{
-		var  _y_out = GUI_HEIGHT + 50;
-		_node.transform.position.y = lerp(_node.transform.position.y, _y_out, 0.1);
-		_node.update_nested_transform();	
-		
-		if (_y_out - _node.transform.position.y < 1)
-		{
-			_node.transform.position.y = _y_out;
-			_animator.animator_change_state(NODE_MOTION_STATE.OUT);	
-		}
-	}
-	
-	slide_in_vertical = function(_node, _animator)
-	{
-		_node.transform.position.y = lerp(_node.transform.position.y, _node.transform.fixed_position.y, 0.1);
-		_node.update_nested_transform();	
-		
-		if (abs(_node.transform.fixed_position.y - _node.transform.position.y) < 1)
-		{
-			_node.transform.position.y = _node.transform.fixed_position.y;
-			_animator.animator_change_state(NODE_MOTION_STATE.IDLE);	
-		}
-	}
-	
-	slide_in_horizontal_left = function(_node, _animator)
-	{
-		_node.transform.position.x = lerp(_node.transform.position.x, _node.transform.fixed_position.x, 0.02);
-		_node.update_nested_transform();	
-		
-		if (abs(_node.transform.position.x - _node.transform.fixed_position.x) < 1)
-		{
-			_node.transform.position.x =  _node.transform.fixed_position.x;
-			_animator.animator_change_state(NODE_MOTION_STATE.IDLE);	
-		}
-	}
-	
-	slide_in_horizontal_right = function(_node, _animator)
-	{
-		_node.transform.position.x = lerp(_node.transform.position.x, _node.transform.fixed_position.x, 0.1);
-		_node.update_nested_transform();	
-		
-		if (abs(_node.transform.position.x - _node.transform.fixed_position.x) < 1)
-		{
-			_node.transform.position.x =  _node.transform.fixed_position.x;
-			_animator.animator_change_state(NODE_MOTION_STATE.IDLE);	
-		}
-	}
-		
-	ac_scale_leave = function(_node, _animator)
-	{
-		with (_animator)
-		{
-			if (!motion_state_set)
+			// Calcula valores no inicio da animação
+			if (!_event_ctrl.value_calculated)
 			{
-				motion_state_set = true;
-			
-				ac_leave.progress = 0;
-				ac_leave.timer = 0;
-				ac_leave.channel = animcurve_get_channel(ac_leave.curve, ac_leave.channel_ind);	
-			}		
-			
-			ac_leave.timer_delay -= delta_time_seconds();
-			if (ac_leave.timer_delay <= 0)
-			{			
-				ac_leave.timer += delta_time_seconds();
-				ac_leave.progress = animcurve_channel_evaluate(ac_leave.channel, ac_leave.timer/ ac_leave.timer_max);
-			}			
-		}
-	
-		_node.transform.scale.x = _node.transform.fixed_scale.x * (1 - _animator.ac_leave.progress);
-		_node.transform.scale.y = _node.transform.fixed_scale.y * (1 - _animator.ac_leave.progress);
-		
-		_node.update_nested_transform();
-		
-		if (_animator.ac_leave.timer >= _animator.ac_leave.timer_max)
-		{
-			_animator.call_function_when_complete();			
-			if (!_animator.restart_anim)
-			{
-				_animator.animator_change_state(NODE_MOTION_STATE.OUT);
-			}
-			else 
-			{
-				_animator.owner.update(_animator.owner);
-				_animator.restart_anim = false;
-				_animator.animator_change_state(NODE_MOTION_STATE.ENTER);
+				// Valor inicial no momento que a animação começou
+				_event_ctrl.value_start = variable_clone(_node.transform.scale.x);
 				
-			}
-		}
-	}
-	
-	ac_scale_enter = function(_node, _animator)
-	{
-		with (_animator)
-		{
-			if (!motion_state_set)
-			{
-				motion_state_set = true;		
-				ac_enter.progress = 0;
-				ac_enter.timer = 0;
-				ac_enter.channel = animcurve_get_channel(ac_enter.curve, ac_enter.channel_ind);		
+				// Calculando a diferença do valor para o desejado 
+				_event_ctrl.value_diff = _event_ctrl.value_to - _event_ctrl.value_start;
 				
-				ac_enter.timer_delay = ac_enter.timer_delay_max;
+				
+				_event_ctrl.value_calculated = true;
 			}
 			
-			ac_enter.timer_delay -= delta_time_seconds();
-			if (ac_enter.timer_delay <= 0)
-			{			
-				ac_enter.timer += delta_time_seconds();
-				ac_enter.progress = animcurve_channel_evaluate(ac_enter.channel, ac_enter.timer/ ac_enter.timer_max);
+			var _animator = _node.animator;
+			var _easing_func = global.easing_functions[_event_ctrl.curve];
+		
+			// Timer da animação
+			_event_ctrl.timer += delta_time_seconds();
+		
+			// Utilizando função de Easing do script PennersEasingAlgorithms
+			var _scale_target = _easing_func(_event_ctrl.timer, _event_ctrl.value_start, _event_ctrl.value_diff, _event_ctrl.timer_max);	
+			
+			// Aplicando escala no node
+			_node.transform.scale.x = _scale_target;
+			_node.transform.scale.y = _scale_target;
+			
+			// Atualizando transform dos nodes aninhados
+			_node.update_nested_transform();
+					
+			// Checando fim da animação
+			if (_event_ctrl.timer >= _event_ctrl.timer_max)
+			{
+				_event_ctrl.animation_completed = true;	
+				_animator.call_function_when_complete();
+				
+				if (_animator.motion_state_compare(NODE_MOTION_STATE.LEAVE))
+				{
+					_animator.animator_change_state(NODE_MOTION_STATE.OUT);	
+				}
 			}
 		}
-		_node.transform.scale.x = _node.transform.fixed_scale.x * _animator.ac_enter.progress;
-		_node.transform.scale.y = _node.transform.fixed_scale.y * _animator.ac_enter.progress;
-		
-		_node.update_nested_transform();
-		
-		if (_animator.ac_enter.timer >= _animator.ac_enter.timer_max)
-		{
-			_animator.call_function_when_complete();			
-			_animator.animator_change_state(NODE_MOTION_STATE.IDLE);
-		}
-	}
-	
-	active_scale_grow = function(_node, _animator)
-	{
-		if (_node.node_active)
-		{
-			var _scale_target_x = _node.transform.fixed_scale.x * 1.1,
-				_scale_target_y = _node.transform.fixed_scale.y * 1.1;
-									
-			if (_node.transform.scale.x != _scale_target_x)
-			{
-				_node.transform.scale.x = lerp(_node.transform.scale.x, _scale_target_x, 0.1);
-				_node.transform.scale.y = lerp(_node.transform.scale.y, _scale_target_y , 0.1);
 
-				_node.update_nested_transform();
-			}
-		}
-		else
-		{
-			if (_node.transform.scale.x != _node.transform.fixed_scale.x)
-			{
-				_node.transform.scale.x = lerp(_node.transform.scale.x, _node.transform.fixed_scale.x, 0.1);
-				_node.transform.scale.y = lerp(_node.transform.scale.y, _node.transform.fixed_scale.y, 0.1);
-								
-				_node.update_nested_transform();	
-			}
-		}	
 	}
 }

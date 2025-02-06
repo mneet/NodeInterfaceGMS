@@ -1,5 +1,5 @@
-/// @description Inserir descrição aqui
-// Você pode escrever seu código neste editor
+/// @description Node Manager Create
+
 canvas_collection = [];
 canvas_active = noone;
 canvas_active_ind = 0;
@@ -46,10 +46,17 @@ __canvas_execute_change_active = function()
 		
 		canvas_exibiting = [_id];
 		__system_define_canvas();
-		
-		canvas_active.update();
-		canvas_active.node_call_state(NODE_MOTION_STATE.ENTER);
-		
+				
+		with (canvas_active)
+		{
+			update();
+			node_call_state(NODE_MOTION_STATE.ENTER);
+			nav_select_node(nav_default_path, false);
+			if (nav_node_selected != noone)
+			{
+				input_set_cursor(variable_clone(nav_node_selected.transform.position));
+			}
+		}
 		global.node_manager.__call_next_canvas_ind = noone;
 	}
 }

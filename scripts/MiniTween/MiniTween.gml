@@ -36,63 +36,6 @@ global.tween_manager = {};
 with(global.tween_manager)
 {
 	manager_object = noone;				
-	
-	easing_functions = [
-	    EaseLinear,        // EASE_IN
-	    EaseInSine,        // EASE_IN
-	    EaseOutSine,       // EASE_OUT
-	    EaseInOutSine,     // EASE_IN_OUT
-	    EaseInCubic,       // CUBIC_IN
-	    EaseOutCubic,      // CUBIC_OUT
-	    EaseInOutCubic,    // CUBIC_IN_OUT
-	    EaseInQuart,       // QUART_IN
-	    EaseOutQuart,      // QUART_OUT
-	    EaseInOutQuart,    // QUART_IN_OUT
-	    EaseInExpo,        // EXPO_IN
-	    EaseOutExpo,       // EXPO_OUT
-	    EaseInOutExpo,     // EXPO_IN_OUT
-	    EaseInCirc,        // CIRC_IN
-	    EaseOutCirc,       // CIRC_OUT
-	    EaseInOutCirc,     // CIRC_IN_OUT
-	    EaseInBack,        // BACK_IN
-	    EaseOutBack,       // BACK_OUT
-	    EaseInOutBack,     // BACK_IN_OUT
-	    EaseInElastic,     // ELASTIC_IN
-	    EaseOutElastic,    // ELASTIC_OUT
-	    EaseInOutElastic,  // ELASTIC_IN_OUT
-	    EaseInBounce,      // BOUNCE_IN
-	    EaseOutBounce,     // BOUNCE_OUT
-	    EaseInOutBounce    // BOUNCE_IN_OUT
-	];
-}
-
-enum TWEEN_CURVES
-{
-	LINEAR,
-	EASE_IN,
-	EASE_OUT,
-	EASE_IN_OUT,
-	CUBIC_IN,
-	CUBIC_OUT,
-	CUBIC_IN_OUT,
-	QUART_IN,
-	QUART_OUT,
-	QUART_IN_OUT,
-	EXPO_IN,
-	EXPO_OUT,
-	EXPO_IN_OUT,
-	CIRC_IN,
-	CIRC_OUT,
-	CIRC_IN_OUT,
-	BACK_IN,
-	BACK_OUT,
-	BACK_IN_OUT,
-	ELASTIC_IN,
-	ELASTIC_OUT,
-	ELASTIC_IN_OUT,
-	BOUNCE_IN,
-	BOUNCE_OUT,
-	BOUNCE_IN_OUT
 }
 
 enum TWEEN_TYPE
@@ -117,7 +60,7 @@ function MiniTween(_tween_target, _timer = 0) constructor
 {
 	// Curve
 	tween_channel = noone;
-	tween_curve = TWEEN_CURVES.LINEAR;
+	tween_curve = EASING_CURVES.LINEAR;
 	
 	// Timers
 	tween_timer_total = _timer;
@@ -180,11 +123,11 @@ function MiniTween(_tween_target, _timer = 0) constructor
 		return self;
 	}
 	
-	///@function		set_ease(_delay)
-	///@description		Set a easing method to be used on the tweening process
-	static set_ease = function(_easing_method)
+	///@function		set_ease(_easing_curve)
+	///@description		Set a easing curve to be used on the tweening process
+	static set_ease = function(_easing_curve)
 	{
-		tween_curve = _easing_method;
+		tween_curve = _easing_curve;
 		return self;
 	}
 	
@@ -427,12 +370,12 @@ function MiniTween(_tween_target, _timer = 0) constructor
 			if (tween_vec2)
 			{
 				_progress = new Vector2();
-				_progress.x = global.tween_manager.easing_functions[tween_curve](tween_timer, tween_start_value.x, tween_diff_value.x, tween_timer_total);	
-				_progress.y = global.tween_manager.easing_functions[tween_curve](tween_timer, tween_start_value.y, tween_diff_value.y, tween_timer_total);	
+				_progress.x = global.easing_functions[tween_curve](tween_timer, tween_start_value.x, tween_diff_value.x, tween_timer_total);	
+				_progress.y = global.easing_functions[tween_curve](tween_timer, tween_start_value.y, tween_diff_value.y, tween_timer_total);	
 			}
 			else
 			{
-				_progress = global.tween_manager.easing_functions[tween_curve](tween_timer, tween_start_value, tween_diff_value, tween_timer_total);
+				_progress = global.easing_functions[tween_curve](tween_timer, tween_start_value, tween_diff_value, tween_timer_total);
 			}
 		}	
 		
@@ -594,6 +537,5 @@ function mini_tween(_tween_target, _timer)
 	
 	return _tween_struct;
 }
-
 
 #endregion

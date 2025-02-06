@@ -23,6 +23,10 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 	__grid_initiated = false;
 	__bt_selected_this_frame = false;
 	
+	///@function					nav_select_node(_path, _play_sound)
+	///@description					Select an given node 
+	///@param {string} _path		Node path to be selected
+	///@param {bool} _play_sound	IF the selection sound should be played
 	static nav_select_node = function(_path, _play_sound = true)
 	{
 		if (__bt_selected_this_frame) return;
@@ -46,10 +50,10 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 		}
 	}
 	
-	static nav_deselect_node = function(_path = nav_node_selected.path)
+	///@function					nav_deselect_node()
+	///@description					Remove the navigation selection from the current select node
+	static nav_deselect_node = function()
 	{
-		if (!is_array(_path)) return;
-		
 		if (nav_node_selected != noone)
 		{
 			nav_node_selected.navigator.select_node();
@@ -58,11 +62,14 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 	}
 	
 	#region GRID BUILDER
+	
+	///@function					__nav_build_grid()
+	///@description					Build the initial navigation grid
 	static __nav_build_grid = function()
 	{
 		var _grid = [];
-		var _row = floor(transform.size.x / nav_grid_cell_size.x),
-			_column = floor(transform.size.y / nav_grid_cell_size.y);
+		var _row = floor(transform.fixed.size.x / nav_grid_cell_size.x),
+			_column = floor(transform.fixed.size.y / nav_grid_cell_size.y);
 		
 		for (var _y = 0; _y < _column; _y++)
 		{
@@ -77,14 +84,16 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 		nav_grid_dimension.y = _column;
 	}
 	
+	///@function					__nav_snap_to_grid(_position)
+	///@description					Snap a pixel position to a grid coordinate
 	static __nav_snap_to_grid = function(_position)
 	{
 		var _grid_pos = new Vector2();
-		var _origin_x = transform.position.x + system_origin_offset.x,
-			_origin_y = transform.position.y + system_origin_offset.y;
+		var _origin_x = transform.fixed.position.x + system_origin_offset.x,
+			_origin_y = transform.fixed.position.y + system_origin_offset.y;
 			
-		var _right_x = _origin_x + transform.size.x,
-			_down_y = _origin_y + transform.size.y;
+		var _right_x = _origin_x + transform.fixed.size.x,
+			_down_y = _origin_y + transform.fixed.size.y;
 			
 		if (_position.x > _right_x || _position.x < _origin_x)
 		{
@@ -104,8 +113,11 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 		return _grid_pos;
 	}	
 	
+	///@function					__nav_clean_grid(_grid)
+	///@description					Clean empty rows and columns from the grid
 	static __nav_clean_grid = function(_grid = nav_grid)
 	{
+		
 		var _temp_grid = variable_clone(_grid);
 		var _delete_row = [];
 		var _delete_column = [];
@@ -156,11 +168,16 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 				
 		
 		nav_grid_dimension.x = array_length(_temp_grid);
-		nav_grid_dimension.y = array_length(_temp_grid[0]);
-
+		if (array_length(_temp_grid) > 0)
+		{
+			nav_grid_dimension.y = array_length(_temp_grid[0]);
+		}
+		
 		return _temp_grid;
 	}
 	
+	///@function					__nav_fill_holes(_grid)
+	///@description					Fill holes in the grid with noone value
 	static __nav_fill_holes = function(_grid = nav_grid)
 	{
 		for (var _x = 0; _x < nav_grid_dimension.x; _x++)
@@ -180,24 +197,26 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 		return _grid;
 	}
 	
+	///@function					__populate_nav_grid()
+	///@description					Populate navigation grid with canvas nodes
 	static __populate_nav_grid = function()
 	{	
 		var _path_cells = __get_navigation_paths();
+				
 		var _len = array_length(_path_cells); 
 		for (var _i = 0; _i < _len; _i++)
 		{
 			var _cell = _path_cells[_i];
 			var _grid_snap = __nav_snap_to_grid(_cell.position);
-			
 			if (_grid_snap != false) nav_grid[_grid_snap.x, _grid_snap.y] = variable_clone(_cell.path);
 		}
-		
+				
 		if (_len > 0) 
 		{
 			nav_grid = __nav_clean_grid();
 			nav_grid = __nav_fill_holes();
 		}
-		else nav_grid = noone;
+		else nav_grid = noone;	
 	}
 	
 	#region NAV SEARCH
@@ -450,6 +469,8 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 		
 	#endregion
 	
+	///@function					__nav_build_navigations()
+	///@description					Run system functions to build navigation grid
 	static __nav_build_navigations = function()
 	{
 		
@@ -460,7 +481,7 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 				var _cell = nav_grid[_x, _y];
 				if (_cell != noone)
 				{
-					if (nav_default_path == noone) nav_default_path = _cell;
+					if (nav_default_path == noone) nav_default_path = variable_clone(_cell);
 					
 					var _node = node_find_by_path(_cell);
 					_node.navigator.grid_position = new Vector2(_x, _y);
@@ -485,12 +506,15 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 	
 	#region INPUT
 	
+	///@function					__nav_input_manager()
+	///@description					Handles grid input navigation
 	static __nav_input_manager = function(_canvas)
 	{
 		if (global.node_manager.block_navigation || !_canvas.button_input) return;
 		
 		with (_canvas)
 		{
+			
 			if (nav_grid == noone) return;
 			
 			if (nav_node_selected == noone) 
@@ -498,12 +522,13 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 				nav_select_node(nav_default_path, false);
 				if (nav_node_selected == noone) return;
 			}
+
 		
 			var _directions = nav_node_selected.navigator.directions,
 				_blocked_dir = nav_node_selected.navigator.blocked_directions;
 				
 			var _mov_input = input_check_movement_accelerator();
-			
+						
 			if (_mov_input.x > 0)
 			{
 				if (_directions.right != noone && !_blocked_dir.right) nav_select_node(_directions.right); 
@@ -528,33 +553,56 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 	
 	#region UTILITY
 	
-	static navigation_set_grid_cell_size = function(_x, _y)
+	///@function					navigation_set_grid_cell_size(_w, _h)
+	///@description					Set the cell size of the navigation grid
+	///@param {real} _w			Cell width
+	///@param {real} _h			Cell height
+	static navigation_set_grid_cell_size = function(_w, _h)
 	{
-		nav_grid_cell_size.x = _x;
-		nav_grid_cell_size.y = _y;
+		nav_grid_cell_size.x = _w;
+		nav_grid_cell_size.y = _h;
 		return self;
 	}
 	
+	///@function					navigation_block_button_input()
+	///@description					Block gamepad/keyboard input
 	static navigation_block_button_input = function()
 	{
 		button_input = !button_input;
 	}
 	
+	///@function					navigation_block_cursor_input()
+	///@description					Block cursor input
 	static navigation_block_cursor_input = function()
 	{
 		cursor_input = !cursor_input;
+	}
+	
+	///@function					navigation_set_default_node(_node_name)
+	///@description					Set the given node to be the default selected node when activating this canvas
+	///@param {string} _node_name	Default node name
+	static navigation_set_default_node = function(_node_name)
+	{
+		var _first_node = node_find_by_name(_node_name);
+		if (_first_node != noone)
+		{
+			nav_default_path = _first_node.path;
+		}
 	}
 	
 	#endregion
 	
 	#endregion
 	
-	nav_initiate_grid = function()
+	///@function					__nav_initiate_grid()
+	///@description					Build grid, populate and select default node
+	static __nav_initiate_grid = function()
 	{
 		__nav_build_grid();
 		__populate_nav_grid();
+		
 		if (nav_grid != noone)
-		{					
+		{				
 			__nav_build_navigations();		
 			nav_select_node(nav_default_path, false);
 		}
@@ -562,7 +610,7 @@ function node_canvas(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) : node(_name,_o
 	
 	custom_awake = function()
 	{
-		nav_initiate_grid();		
+		__nav_initiate_grid();		
 		if (nav_grid != noone) nav_deselect_node();
 	}	
 }

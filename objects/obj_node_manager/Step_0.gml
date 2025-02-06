@@ -1,5 +1,4 @@
-/// @description Inserir descrição aqui
-// Você pode escrever seu código neste editor
+/// @description Node Manager Step
 
 if (!__active_canvas) return;
 

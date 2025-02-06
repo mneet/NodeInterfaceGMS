@@ -31,8 +31,8 @@ function __node_renderer() constructor
 		var _origin_x = _node.transform.position.x + _node.system_origin_offset.x,
 			_origin_y = _node.transform.position.y + _node.system_origin_offset.y;
 		
-		var _size_x = _origin_x + _node.transform.size.x,
-			_size_y = _origin_y + _node.transform.size.y;
+		var _size_x = _origin_x + _node.transform.fixed.size.x,
+			_size_y = _origin_y + _node.transform.fixed.size.y;
 			
 		draw_rectangle(_origin_x, _origin_y, _size_x, _size_y, true);
 	}

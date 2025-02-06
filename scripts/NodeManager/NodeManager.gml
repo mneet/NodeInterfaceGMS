@@ -122,7 +122,7 @@ function __node_canvas_input_define(_obj)
 	}
 }
 
-function __node_update_all_canvas()
+function node_update_all_canvas()
 {
 	for (var _i = 0; _i < instance_number(obj_node_manager); _i++)
 	{

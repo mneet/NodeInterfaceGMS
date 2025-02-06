@@ -60,7 +60,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			var _node = nested_nodes[_i];
 			if (_node.navigator != noone)
 			{
-				var _position = variable_clone(_node.transform.position);
+				var _position = variable_clone(_node.transform.fixed.position);
 				_position.x += _node.transform.offset.x * -1;
 				_position.y += _node.transform.offset.y * -1;
 				
@@ -77,7 +77,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Search a node by its name (Slow, use it caution)
 	static __node_search_by_name = function(_name)
 	{
-		var _search = false;
+		var _search = noone;
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];
@@ -89,10 +89,10 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			else
 			{
 				_search = _node.__node_search_by_name(_name);	
-				if (_search != false) break;
+				if (_search != noone) break;
 			}
 		}	
-		if (_search != false)
+		if (_search != noone)
 		{
 			struct_add_variable_once(__path_cache, _name, _search.path);	
 		}
@@ -121,7 +121,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Search a node by its name, if already cache it will search by its path automaticaly
 	static node_find_by_name = function(_name)
 	{
-		var _node = false;
+		var _node = noone;
 		if (string_length(_name) <= 0) return _node;
 		
 		if (!struct_exists(__path_cache, _name))
@@ -141,7 +141,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			
 	#region UPDATE NODE INTERNAL VARIABLES
 	
-	///@function		update()
+	///@		update()
 	///@descriptions	Update the button variables when needed, example: Language or input mode change
 	static update = function(_node)
 	{
@@ -182,9 +182,21 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];			
-			_node.transform.__set_parent(transform);
+			_node.transform.__transform_recalculate(transform);
 			_node.__node_get_system_origin_offset();
 			_node.update_nested_transform();
+		}
+	}
+	
+	///@function		__reset_nested_nodes_to_start()
+	///@description		Reset nested tranform values to start
+	static __reset_nested_nodes_to_start = function()
+	{
+		for (var _i = 0; _i < nested_nodes_amnt; _i++)
+		{
+			var _node = nested_nodes[_i];			
+			_node.transform.__reset_to_start();
+			_node.__reset_nested_nodes_to_start();
 		}
 	}
 	
@@ -214,7 +226,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Calculate the system origin of the node (System origin is always TOP LEFT)
 	static __node_get_system_origin_offset = function()
 	{
-		var _size = transform.size;
+		var _size = transform.fixed.size;
 		switch (origin)
 		{
 			case NODE_ORIGIN.BOTTOM_LEFT:
@@ -262,8 +274,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	
 	#region MUSIC
 	
-	sound_play_enter = snd_interface_open;
-	sound_play_leave = snd_interface_open;
+	sound_play_enter = noone;
+	sound_play_leave = noone;
 	
 	#endregion
 	
@@ -278,11 +290,11 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			switch (_state)
 			{
 				case NODE_MOTION_STATE.ENTER:
-					audio_play_sfx(sound_play_enter);	
+					if audio_exists(sound_play_enter) audio_play_sfx(sound_play_enter);	
 					break;
 					
 				case NODE_MOTION_STATE.OUT:
-					//audio_play_sfx(sound_play_leave);	
+					if audio_exists(sound_play_leave) audio_play_sfx(sound_play_leave);	
 					break;
 			}		
 		}
@@ -318,7 +330,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@function		node_trigger_nested_animator(_state)
 	///@description		Trigger a state on all nested nodes
 	static node_trigger_nested_animator = function(_state)
-	{
+	{		
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];			
@@ -353,10 +365,11 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			array_push(nested_nodes, variable_clone(argument[_i]));	
 			array_push(nested_depth_order, variable_clone(argument[_i].id));
 			
-			if (argument[_i].transform.size.x > transform.fixed_size.x && argument[_i].transform.size.y > transform.fixed_size.y)
+			if (argument[_i].transform.size.x > transform.fixed.size.x && argument[_i].transform.size.y > transform.fixed.size.y)
 			{
-				node_set_size(argument[_i].transform.size.x, argument[_i].transform.size.y);	
+				node_set_size(argument[_i].transform.fixed.size.x, argument[_i].transform.fixed.size.y);	
 			}
+			argument[_i].transform.parent = transform; 
 		}		
 		nested_nodes_amnt = array_length(nested_nodes);
 		return self;
@@ -377,8 +390,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y position in pixels
 	static node_set_position = function(_x, _y)
 	{
-		transform.fixed_position.x = round(_x);
-		transform.fixed_position.y = round(_y);	
+		transform.fixed.position.x = round(_x);
+		transform.fixed.position.y = round(_y);	
 						
 		return self;
 	}
@@ -389,8 +402,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y scale
 	static node_set_scale = function(_x, _y)
 	{
-		transform.fixed_scale.x = _x;
-		transform.fixed_scale.y = _y;
+		transform.fixed.scale.x = _x;
+		transform.fixed.scale.y = _y;
 		
 		return self;
 	}
@@ -401,7 +414,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y position in pixels
 	static node_set_start_position = function(_x, _y)
 	{
-		transform.start_position = new Vector2(round(_x), round(_y));
+		transform.start.position = new Vector2(round(_x), round(_y));
 		
 		return self;
 	}
@@ -412,7 +425,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y scale
 	static node_set_start_scale = function(_x, _y)
 	{
-		transform.start_scale = new Vector2(round(_x), round(_y));
+		transform.start.scale = new Vector2(round(_x), round(_y));
 		
 		return self;
 	}
@@ -423,7 +436,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y scale
 	static node_set_start_rotation = function(_x, _y)
 	{
-		transform.start_rotation = _x;
+		transform.start.rotation = _x;
 		
 		return self;
 	}
@@ -433,7 +446,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _alpha				Alpha
 	static node_set_start_alpha = function(_alpha)
 	{
-		transform.start_alpha = _alpha;	
+		transform.start.alpha = _alpha;	
 		return self;
 	}
 	
@@ -455,8 +468,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _h					Height in pixels
 	static node_set_size = function(_w, _h)
 	{		
-		transform.fixed_size.x = variable_clone(round(_w));
-		transform.fixed_size.y = variable_clone(round(_h));	
+		transform.fixed.size.x = variable_clone(round(_w));
+		transform.fixed.size.y = variable_clone(round(_h));	
 		
 		transform.size.x = variable_clone(round(_w));
 		transform.size.y = variable_clone(round(_h));	
@@ -470,7 +483,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _origin			Desired origin using enum NODE_ORIGIN
 	static node_get_converted_origin = function(_origin)
 	{
-		var _size = transform.size;
+		var _size = transform.fixed.size;
 		var _offset = variable_clone(system_origin_offset);
 		switch (_origin)
 		{
@@ -645,53 +658,38 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		transform.__reset_to_start();
 		
 		update_nested_transform();	
-		custom_awake();
+		
+		__reset_nested_nodes_to_start();
+		custom_awake();		
 	}
 }
 
-function __node_transform() : MiniTransform() constructor
+ function __node_transform() : MiniTransform() constructor
 {
 	owner = noone;
-	
-	// ATTRIBUTES
-	position = new Vector2(0,0);
-	parent_position = new Vector2(0,0);
-	self_position = new Vector2(0,0);
-	fixed_position = new Vector2(0,0);
-	start_position = noone;
-	
-	scale = new Vector2(1,1);
-	parent_scale = new Vector2(1,1)
-	self_scale = new Vector2(1,1);
-	fixed_scale = new Vector2(1,1);
-	start_scale = noone;
-	
-	alpha = 1;
-	parent_alpha = 1;
-	self_alpha = 1;
-	fixed_alpha = 1;
-	start_alpha = noone;
-	
-	rotation = 0;
-	parent_rotation = 0;
-	self_rotation = 0;
-	fixed_rotation = 0;
-	start_rotation = noone;
-	
-	size = new Vector2(16,16);
-	fixed_size = new Vector2(16,16);
-	parent_size = new Vector2(16,16);
+
+	fixed = variable_clone(local);
 	offset = new Vector2(0,0);	
 	
+	start = {};
+	with (start)
+	{
+		position = noone;
+		scale = noone;
+		alpha = noone;		
+		rotation = noone;	
+		size = noone;
+		offset = noone;	
+	}
 
 	///@function		__initiate_transform()
 	///@description		Initiate transform variables
 	static __initiate_transform = function()
 	{
-		self_position = variable_clone(fixed_position);	
-		self_scale = variable_clone(fixed_scale);				
-		self_alpha = variable_clone(fixed_alpha);			
-		self_rotation = variable_clone(fixed_rotation);
+		local.position = variable_clone(fixed.position);	
+		local.scale = variable_clone(fixed.scale);				
+		local.alpha = variable_clone(fixed.alpha);			
+		local.rotation = variable_clone(fixed.rotation);
 		
 		__transform_calculate_size();
 		__transform_recalculate();
@@ -701,17 +699,22 @@ function __node_transform() : MiniTransform() constructor
 	///@description		Update attribute safter being organized by a container
 	static __containter_update = function()
 	{
-		self_position = variable_clone(fixed_position);	
-		self_scale = variable_clone(fixed_scale);				
-		self_alpha = variable_clone(fixed_alpha);			
-		self_rotation = variable_clone(fixed_rotation);
+		local.position = variable_clone(fixed.position);	
+		local.scale = variable_clone(fixed.scale);				
+		local.alpha = variable_clone(fixed.alpha);			
+		local.rotation = variable_clone(fixed.rotation);
 		
-		fixed_position.x = parent_position.x + self_position.x;
-		fixed_position.y = parent_position.y + self_position.y;
-		fixed_alpha = self_alpha * alpha;
-		fixed_scale.x = self_scale.x * parent_scale.x;
-		fixed_scale.y = self_scale.y * parent_scale.y;
-		fixed_rotation = self_rotation + rotation;
+		fixed.position.x = parent.position.x + local.position.x;
+		fixed.position.y = parent.position.y + local.position.y;
+		fixed.alpha = local.alpha * alpha;
+		fixed.scale.x = local.scale.x * parent.scale.x;
+		fixed.scale.y = local.scale.y * parent.scale.y;
+		fixed.rotation = local.rotation + rotation;
+		
+		position = variable_clone(fixed.position);
+		scale = variable_clone(fixed.scale);
+		alpha = variable_clone(fixed.alpha);
+		rotation = variable_clone(fixed.rotation);
 		
 		__transform_recalculate();
 		
@@ -722,49 +725,44 @@ function __node_transform() : MiniTransform() constructor
 	///@description		Recalculate node size and scale
 	static __transform_calculate_size = function()
 	{
-		size.x = round(fixed_size.x * scale.x);
-		size.y = round(fixed_size.y * scale.y);
+		size.x = round(fixed.size.x * scale.x);
+		size.y = round(fixed.size.y * scale.y);
 	}
 	
 	///@function		__transform_recalculate()
 	///@description		Recalculate positions, size, etc
-	static __transform_recalculate = function()
+	static __transform_recalculate = function(_parent = noone)
 	{			
-		position.x = parent_position.x + self_position.x + offset.x;
-		position.y = parent_position.y + self_position.y + offset.y;
+		if (_parent != noone)
+		{		
+			parent.position = variable_clone(_parent.position);
+			parent.scale = variable_clone(_parent.scale);
+			parent.alpha = variable_clone(_parent.alpha);	
+			parent.rotation = variable_clone(_parent.rotation);	
+			parent.size = variable_clone(_parent.size);
+		}
 		
-		scale.x = self_scale.x * parent_scale.x;
-		scale.y = self_scale.y * parent_scale.y;
-				
-		alpha = self_alpha * parent_alpha;
+		position.x = local.position.x + offset.x + parent.position.x;
+		position.y = local.position.y + offset.y + parent.position.y;
 		
-		rotation = self_rotation + parent_rotation;
-				
-		__transform_calculate_size();
+		scale.x = local.scale.x * parent.scale.x;
+		scale.y = local.scale.y * parent.scale.y;
+			
+		alpha = local.alpha * parent.alpha;
+		
+		rotation = local.rotation + parent.rotation;		
 
-	}	
-	
-	///@function		__set_parent()
-	///@description		Get the parent node attributes
-	static __set_parent = function(_transform)
-	{
-		parent_position = variable_clone(_transform.position);
-		parent_scale = variable_clone(_transform.scale);
-		parent_rotation = variable_clone(_transform.rotation);
-		parent_alpha = variable_clone(_transform.alpha);
-		parent_size = variable_clone(_transform.size);
-		
-		__transform_recalculate();
+		__transform_calculate_size();
 	}	
 	
 	///@function		__reset_to_start()
 	///@description		Set the active variables to the start variables (Used when animating nodes)
 	static __reset_to_start = function()
 	{
-		position = start_position != noone ? variable_clone(start_position) : position;
-		scale = start_scale != noone ? variable_clone(start_scale) : scale;
-		alpha = start_alpha != noone ? variable_clone(start_alpha) : alpha;
-		rotation = start_rotation != noone ? variable_clone(start_rotation) : rotation;
+		position = start.position != noone ? variable_clone(start.position) : position;
+		scale = start.scale != noone ? variable_clone(start.scale) : scale;
+		alpha = start.alpha != noone ? variable_clone(start.alpha) : alpha;
+		rotation = start.rotation != noone ? variable_clone(start.rotation) : rotation;
 	}
 	
 	

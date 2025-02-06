@@ -23,7 +23,6 @@
 function MiniTransform() constructor
 {
 	owner = noone;
-	parent = noone;
 	children = noone;
 	
 	// ATTRIBUTES
@@ -36,10 +35,13 @@ function MiniTransform() constructor
 	with (local)
 	{
 		position =  new Vector2();
-		xscale =  new Vector2();
+		scale =  new Vector2();
 		alpha = 1;		
 		rotation = 0;	
+		size = new Vector2();
+		offset = new Vector2();
 	}
+	parent = variable_clone(local);
 	
 	size = new Vector2(16,16);
 	base_size = new Vector2(16,16);

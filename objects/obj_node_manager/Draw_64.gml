@@ -1,5 +1,4 @@
-/// @description Inserir descrição aqui
-// Você pode escrever seu código neste editor
+/// @description Node Manager Draw GUI
 
 if (!__active_canvas) return;
 for (var _i = 0; _i < canvas_exibiting_amnt; _i++)
