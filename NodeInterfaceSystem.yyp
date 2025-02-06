@@ -1,6 +1,6 @@
 {
   "$GMProject":"",
-  "%Name":"Neet UI Manager - NUM",
+  "%Name":"NodeInterfaceSystem",
   "AudioGroups":[
     {"$GMAudioGroup":"","%Name":"audiogroup_default","name":"audiogroup_default","resourceType":"GMAudioGroup","resourceVersion":"2.0","targets":-1,},
   ],
@@ -22,7 +22,7 @@
   "MetaData":{
     "IDEVersion":"2024.6.2.162",
   },
-  "name":"Neet UI Manager - NUM",
+  "name":"NodeInterfaceSystem",
   "resources":[
     {"id":{"name":"obj_mini_tweener","path":"objects/obj_mini_tweener/obj_mini_tweener.yy",},},
     {"id":{"name":"obj_node_manager","path":"objects/obj_node_manager/obj_node_manager.yy",},},
