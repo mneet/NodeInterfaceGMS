@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"node_animator",
+  "%Name":"NodeNavigator",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"node_animator",
+  "name":"NodeNavigator",
   "parent":{
     "name":"Components",
-    "path":"folders/NODE - Interface System by Neet/Node/Components.yy",
+    "path":"folders/NODE - Interface System by Neet/NodeStructs/Components.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

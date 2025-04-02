@@ -1,12 +1,12 @@
 {
   "$GMScript":"v1",
-  "%Name":"node_canvas",
+  "%Name":"NodeContainer",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"node_canvas",
+  "name":"NodeContainer",
   "parent":{
     "name":"CoreNodes",
-    "path":"folders/NODE - Interface System by Neet/Node/CoreNodes.yy",
+    "path":"folders/NODE - Interface System by Neet/NodeStructs/CoreNodes.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

@@ -1,0 +1,23 @@
+# Node Interface GMS - 1.0.0
+
+Sistema feito para criação de interfaces, possui diversas funcionaldiades preprogramadas,
+como um sistema de navegação automatico, sistemas de animação e controle de estado dos elementos de interface.
+
+O Node é desenvolvido de uma maneira que seja fácil de adicionar e retirar diferentes elementos visuais,
+sempre com foco na modulariedade. 
+
+## Versionamento:
+
+### X.Y.Z - 1.0.0
+
+### X ->
+    Representa a versão MAJOR, ela é alterada quando mudanças estruturais são feitas.
+    Esses patches podem causar conflitos entre interfaces feitas com versões MAJOR diferentes
+
+### Y ->
+	Representa a versão STAGE, ela é alterada quando são feitas mudanças dentro de componentes
+	que não causam conflitos, adição de funcionalidades menores e correções de maior complexidade
+
+### Z -> 
+	Representa o PATCH atual do versionamento, ele é alterado quando são feitas correções menores
+	no código, bugfixes e outros ajustes.

@@ -502,10 +502,10 @@ function EaseInOutElastic(_time, _start, _change, _duration)
 #endregion
 
 global.easing_functions = [
-	EaseLinear,        // LINEAR
-	EaseInSine,        // SINE_IN
-	EaseOutSine,       // SINE_OUT
-	EaseInOutSine,     // SINE_IN_OUT
+	EaseLinear,        // EASE_IN
+	EaseInSine,        // LINEAR_IN
+	EaseOutSine,       // LINEAR_OUT
+	EaseInOutSine,     // LINEAR_IN_OUT
 	EaseInCubic,       // CUBIC_IN
 	EaseOutCubic,      // CUBIC_OUT
 	EaseInOutCubic,    // CUBIC_IN_OUT

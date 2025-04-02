@@ -71,12 +71,9 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	
 	// Tween Control
 	tween_attribute = "";
-	tween_attribute_name = "";
 	tween_target = _tween_target;
 	tween_is_struct = false;
 	tween_target_weak_ref = noone;
-	tween_exclusive = false;
-	
 	// Function
 	on_complete_func = noone;
 	on_complete_func_param = tween_target;
@@ -134,12 +131,11 @@ function MiniTween(_tween_target, _timer = 0) constructor
 		return self;
 	}
 	
-	///@function		tween_position(_x, _y)
+	///@function		tween_position(_position)
 	///@description		Tween a node to an given position	
 	static tween_position = function(_x, _y)
 	{
 		tween_attribute = new Vector2(TWEEN_ATTRIBUTE_X, TWEEN_ATTRIBUTE_Y);
-		tween_attribute_name = TWEEN_ATTRIBUTE_X;
 		tween_to_value = new Vector2(_x ,_y);
 		
 		tween_vec2 = true;
@@ -154,7 +150,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	static tween_scale = function(_x, _y)
 	{
 		tween_attribute = new Vector2(TWEEN_ATTRIBUTE_XSCALE, TWEEN_ATTRIBUTE_YSCALE);
-		tween_attribute_name = TWEEN_ATTRIBUTE_XSCALE;
 		tween_to_value = new Vector2(_x, _y);
 		
 		tween_vec2 = true;
@@ -169,7 +164,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	static tween_alpha = function(_alpha)
 	{
 		tween_attribute = TWEEN_ATTRIBUTE_ALPHA;
-		tween_attribute_name = TWEEN_ATTRIBUTE_ALPHA;
 		tween_to_value = _alpha;
 		
 		return self;
@@ -180,7 +174,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	static tween_rotation = function(_rotation)
 	{
 		tween_attribute = TWEEN_ATTRIBUTE_ROTATION;
-		tween_attribute_name = TWEEN_ATTRIBUTE_ROTATION;
 		tween_to_value = _rotation;
 		
 		return self;
@@ -191,7 +184,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	static tween_subimg = function(_reverse = false)
 	{
 		tween_attribute = TWEEN_ATTRIBUTE_SUB_IMG;
-		tween_attribute_name = TWEEN_ATTRIBUTE_SUB_IMG;
 		tween_basic = false;
 		
 		tween_reverse = true;
@@ -204,7 +196,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	static tween_custom = function(_variable_name, _value)
 	{
 		tween_attribute = _variable_name;
-		tween_attribute_name = _variable_name;
 		tween_to_value = _value;
 		return self;
 	}
@@ -215,19 +206,6 @@ function MiniTween(_tween_target, _timer = 0) constructor
 	{
 		tween_channel = animcurve_get_channel(_animcurve, _channel);
 		tween_with_curve = true;
-		return self;
-	}
-	
-	///@function				tween_set_exclusive(_)
-	///@description				If other tweening for the same attribute should be destroyed
-	static tween_set_exclusive = function()
-	{
-		tween_exclusive = true;
-		
-		if (instance_exists(obj_mini_tweener))
-		{
-			obj_mini_tweener.check_exclusive(self);
-		}
 		return self;
 	}
 	
@@ -546,7 +524,7 @@ function __mini_tween_get_manager()
 
 ///@function									mini_tween(_tween_target, _curve, _channel, _timer)
 ///@description									Function used to create a Tween for a MiniTransform struct
-///@param _tween_target							Struct or instance to be tweened
+///@param {struct, id} _tween_target			Struct or instance to be tweened
 ///@param {real} _timer							Timer the tweening will last in seconds
 function mini_tween(_tween_target, _timer)
 {
@@ -558,14 +536,6 @@ function mini_tween(_tween_target, _timer)
 	_tween_struct.__tween_configure();
 	
 	return _tween_struct;
-}
-
-function mini_tween_stop_target(_tween_target)
-{
-	if (instance_exists(obj_mini_tweener))
-	{
-		obj_mini_tweener.stop_tween_target(_tween_target);	
-	}
 }
 
 #endregion

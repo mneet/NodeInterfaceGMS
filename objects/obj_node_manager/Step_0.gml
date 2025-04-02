@@ -7,8 +7,8 @@ if (!__system_started)
 	__system_define_canvas();
 }	
 
-for (var _i = 0; _i < canvas_exibiting_amnt; _i++)
+for (var _i = 0; _i < canvas_exhibiting_amnt; _i++)
 {
-	var _ind = canvas_exibiting[_i];
+	var _ind = canvas_exhibiting[_i];
 	canvas_collection[_ind].processor.step_processor();
 }

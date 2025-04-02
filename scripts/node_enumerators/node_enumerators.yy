@@ -5,8 +5,8 @@
   "isDnD":false,
   "name":"node_enumerators",
   "parent":{
-    "name":"NODE - Interface System by Neet",
-    "path":"folders/NODE - Interface System by Neet.yy",
+    "name":"InternalSystems",
+    "path":"folders/NODE - Interface System by Neet/InternalSystems.yy",
   },
   "resourceType":"GMScript",
   "resourceVersion":"2.0",

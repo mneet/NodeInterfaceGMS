@@ -3,7 +3,7 @@ with (global.node_manager)
 {
 	interface_obj = noone;
 	prev_interface_obj = noone;
-	nav_grid_cell_size = new Vector2(16,16);
+	nav_grid_cell_size = new Vector2(20,20);
 	
 	block_action = false;
 	block_navigation = false;
@@ -11,9 +11,6 @@ with (global.node_manager)
 	button_action = false;
 	cursor_action = false;
 	
-	button_active = false;
-	
-	__cursor_hovering_interface = false;
 	
 	debug_size = false;
 	debug_origin = false;
@@ -24,7 +21,39 @@ with (global.node_manager)
 	
 	__reroll_object_function = noone;
 	__new_interface_obj = noone;
-	__canvas_transitioning = false;
+}
+
+function node_activate_manager(_object)
+{
+	global.node_manager.__new_interface_obj = _object;
+	
+	__node_call_manager_out(__node_activate_manager_object)
+}
+
+function node_reroll_manager(_function = __node_reroll_manager_object)
+{	
+	__node_call_manager_out(_function);
+}
+
+function __node_activate_manager_object(_new_object = global.node_manager.__new_interface_obj)
+{
+	with (global.node_manager)
+	{
+		if (instance_exists(interface_obj))
+		{
+			interface_obj.__active_canvas = false;
+		}
+		prev_interface_obj = variable_clone(interface_obj);
+						
+		if (instance_exists(_new_object))
+		{
+			_new_object.__active_canvas = true;			
+			interface_obj = variable_clone(_new_object);
+			__node_call_manager_in();
+			__node_canvas_input_define(_new_object);
+		}
+	}
+	global.node_manager.__new_interface_obj = noone;
 }
 
 function __node_set_manager_object(_obj)
@@ -32,6 +61,52 @@ function __node_set_manager_object(_obj)
 	global.node_manager.interface_obj = _obj;
 	
 	__node_canvas_input_define(_obj);
+}
+
+function __node_reroll_manager_object()
+{
+	with (global.node_manager)
+	{
+		if (instance_exists(prev_interface_obj))
+		{
+			var _temp_active_obj = variable_clone(interface_obj);			
+			_temp_active_obj.__active_canvas = false;
+			
+			interface_obj = variable_clone(prev_interface_obj);
+			interface_obj.__active_canvas = true;
+			
+			prev_interface_obj = variable_clone(_temp_active_obj);	
+			
+			__node_call_manager_in();
+		}
+	}
+}	
+
+function __node_call_manager_in(_execute_after = noone)
+{
+	__node_canvas_input_define(global.node_manager.interface_obj);	
+	input_unlock_all();
+	
+	with (global.node_manager.interface_obj)
+	{
+		if (canvas_active != noone)
+		{
+			canvas_active.node_reset_nested_nodes();	
+			canvas_active.node_call_state(NODE_MOTION_STATE.ENTER, _execute_after);
+		}
+	}	
+}
+
+function __node_call_manager_out(_execute_after = noone)
+{
+	if (instance_exists(global.node_manager.interface_obj))
+	{
+		input_lock_all();
+		with (global.node_manager.interface_obj)
+		{
+			if (canvas_active != noone) canvas_active.node_call_state(NODE_MOTION_STATE.LEAVE, _execute_after);				
+		}		
+	}
 }
 
 function __node_canvas_input_define(_obj)
@@ -62,11 +137,6 @@ function node_update_all_canvas()
 function node_check_cursor_navigation()
 {
 	return global.node_manager.cursor_navigation || input_compare_mode(INPUT_MODE.MOUSE);
-}
-
-function node_check_button_input()
-{
-	return global.node_manager.button_action;
 }
 
 function node_block_navigation()
@@ -103,18 +173,12 @@ function node_compare_active_canvas(_canvas_ind)
 
 function node_change_active_canvas(_canvas_ind)
 {
-	var _obj = global.node_manager.interface_obj;
-	if (instance_exists(_obj) && !node_compare_active_canvas(_canvas_ind))
+	var _obj = global.node_manager.interface_obj
+	if (instance_exists(_obj))
 	{
 		global.node_manager.__call_next_canvas_ind = _canvas_ind;
 		_obj.canvas_change_active(_canvas_ind);
 	}
-}
-
-function node_return_last_canvas()
-{
-	var _canvas_ind =  global.node_manager.interface_obj.__last_main_canvas;	
-	node_change_active_canvas(_canvas_ind);
 }
 
 function node_get_active_canvas()
@@ -126,75 +190,4 @@ function node_get_active_canvas()
 		_canvas = _obj.canvas_active;
 	}
 	return _canvas;
-}
-
-function node_get_canvas_by_ind(_canvas_ind)
-{
-	var _canvas = noone;
-	var _obj = global.node_manager.interface_obj
-	if (instance_exists(_obj))
-	{		
-		if (_canvas_ind < array_length(_obj.canvas_collection))
-		{			
-			_canvas = _obj.canvas_collection[_canvas_ind];
-		}
-	}
-	return _canvas;
-}
-
-function node_push_new_canvas(_new_canvas)
-{
-	var _node_manager = node_get_manager_object();
-	if (instance_exists(_node_manager))
-	{		
-		_node_manager.canvas_push_new(_new_canvas);
-	}
-}
-
-function node_remove_last_canvas()
-{
-	var _obj = global.node_manager.interface_obj
-	if (instance_exists(_obj))
-	{		
-		_obj.canvas_pop();
-	}
-}
-
-function node_get_manager_object()
-{
-	return global.node_manager.interface_obj;
-}
-
-function node_update_by_name(_name)
-{
-	var _manager = node_get_manager_object();
-	if (_manager != noone)
-	{
-		for (var _i = 0; _i < array_length(_manager.canvas_collection); _i++)
-		{
-			var _canvas = _manager.canvas_collection[_i],
-				_node = _canvas.node_find_by_name(_name);
-				
-			if (_node != noone)
-			{
-				_node.update();
-				break;
-			}
-		}	
-	}
-}
-
-function node_is_cursor_over_node()
-{
-	return global.node_manager.__cursor_hovering_interface;
-}
-
-function node_set_button_active(_flag)
-{
-	global.node_manager.button_active = _flag;	
-}
-
-function node_is_button_active()
-{
-	return global.node_manager.button_active;
 }

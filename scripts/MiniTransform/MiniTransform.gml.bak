@@ -20,10 +20,9 @@
 
 ///@function MiniTransform()
 ///@description Transform attributes for objects and structs
-function MiniTransform(_owner  = noone) constructor
+function MiniTransform() constructor
 {
-	owner = _owner;
-	id = 0;
+	owner = noone;
 	children = noone;
 	
 	// ATTRIBUTES
@@ -36,7 +35,7 @@ function MiniTransform(_owner  = noone) constructor
 	with (local)
 	{
 		position =  new Vector2();
-		scale =  new Vector2(1,1);
+		scale =  new Vector2();
 		alpha = 1;		
 		rotation = 0;	
 		size = new Vector2();
@@ -91,11 +90,9 @@ function MiniTransform(_owner  = noone) constructor
 		{
 			case TWEEN_ATTRIBUTE_X: 
 				position.x = _value;
-				local.position.x = _value - parent.position.x;
 				break;
 			case TWEEN_ATTRIBUTE_Y:
 				position.y = _value;
-				local.position.y = _value - parent.position.y;
 				break
 			case TWEEN_ATTRIBUTE_XSCALE: 
 				scale.x = _value;
@@ -138,10 +135,8 @@ function MiniTransform(_owner  = noone) constructor
 				break;
 			case TWEEN_ATTRIBUTE_ROTATION: 
 				_value = rotation;
-				break;
 			case TWEEN_ATTRIBUTE_SUB_IMG:
 				_value = sub_img;
-				break;
 			default:
 				_value = variable_struct_get(self, _attribute)
 				break;

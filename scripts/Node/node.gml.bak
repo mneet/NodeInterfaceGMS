@@ -3,8 +3,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 {
 	// System variables
 	id = 0;
-	array_id = 0;
-	path = [array_id];
+	path = [id];
 	name = _name; 
 	depth = 0;
 	
@@ -15,6 +14,12 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	transform = new __node_transform();
 	transform.owner = self;
 	
+	//Components 
+	renderer = noone;
+	processor = noone;
+	animator = noone;
+	navigator = noone;
+	
 	// Order that children nodes (containers, visual elements, etc) will be executed both for draw and step.
 	// Ordenated by depth
 	nested_nodes = [];
@@ -24,17 +29,9 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	#region SYSTEM
 	
 	node_active = false;
-	
-	node_inactive = false;
-	node_blocked = false;
-	
-	
-	__selection_events = [];
-	__deselection_events = [];
 	__path_amnt = 1;
 	__path_cache = {};
 	__skip_render = false;
-	__canvas_ind = noone;
 	
 	__command_delay = 0;
 	
@@ -48,16 +45,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		{
 			var _node = nested_nodes[_i];
 			_node.path = variable_clone(path);		
-			array_push(_node.path, _node.array_id);
+			array_push(_node.path, _node.id);
 			_node.__path_amnt = array_length(_node.path);
-			
-			var _new_id = "";
-			for (var _j = 0; _j < array_length(_node.path); _j++)
-			{
-				_new_id = string_concat(_new_id, _node.path[_j]);
-				
-			}
-			_node.id = real(_new_id);
 		}
 	}
 	
@@ -71,12 +60,12 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			var _node = nested_nodes[_i];
 			if (_node.navigator != noone)
 			{
-			
-				var _position = variable_clone(_node.transform.fixed.position);		
+				var _position = variable_clone(_node.transform.fixed.position);
+				_position.x += _node.transform.offset.x * -1;
+				_position.y += _node.transform.offset.y * -1;
 				
 				var _path_cell = new __node_navi_grid_path_cell(_position, variable_clone(_node.path));
 				array_push(_paths, _path_cell);	
-				
 			}
 			var _node_path = _node.__get_navigation_paths();
 			if (array_length(_node_path) > 0 ) _paths = array_concat(_paths,_node_path);
@@ -114,8 +103,6 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Search a node by its path
 	static node_find_by_path = function(_path)
 	{
-		if (!is_array(_path)) return noone;
-		
 		_path = variable_clone(_path);
 		if (is_array(_path))
 		{
@@ -137,15 +124,13 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		var _node = noone;
 		if (string_length(_name) <= 0) return _node;
 		
-		if (_name == name) return self;
-		
 		if (!struct_exists(__path_cache, _name))
 		{
 			_node = __node_search_by_name(_name);
 		}
 		else
 		{
-			//show_debug_message($"Node {_name} found on cache");
+			show_debug_message($"Node {_name} found on cache");
 			_node = node_find_by_path(__path_cache[$ _name]);	
 		}
 		
@@ -156,7 +141,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			
 	#region UPDATE NODE INTERNAL VARIABLES
 	
-	///@function		update()
+	///@		update()
 	///@descriptions	Update the button variables when needed, example: Language or input mode change
 	static update = function(_node)
 	{
@@ -168,20 +153,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		custom_update(_node);
 		return;
 	}
-
-	///@function		node_set_block()
-	///@descriptions	Block step function
-	static node_set_block = function(_block)
-	{
-		node_blocked = _block;
-		for (var _i = 0; _i < nested_nodes_amnt; _i++)
-		{
-			var _nested_node = nested_nodes[_i];			
-			_nested_node.node_set_block(_block);
-		}
-		return self;
-	}
-
+	
 	///@function		custom_update()
 	///@descriptions	Update the button variables when needed, example: Language or input mode change
 	custom_update = function()
@@ -199,16 +171,6 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		}
 	}
 	
-	///@function		node_set_active()
-	///@descriptions	Toggle the active flag on the node
-	node_set_active = function(_flag)
-	{
-		if (node_blocked) _flag = false;
-		
-		node_active = _flag;
-		return self;
-	}
-	
 	#endregion
 	
 	#region TRANSFORM MANIPULATION
@@ -219,7 +181,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	{
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
-			var _node = nested_nodes[_i];	
+			var _node = nested_nodes[_i];			
 			_node.transform.__transform_recalculate(transform);
 			_node.__node_get_system_origin_offset();
 			_node.update_nested_transform();
@@ -399,16 +361,15 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	{
 		for (var _i = 0; _i < argument_count; _i++)
 		{
-			var _element = argument[_i];
-			_element.array_id = array_length(nested_nodes);
-			array_push(nested_nodes, variable_clone(_element));	
-			array_push(nested_depth_order, variable_clone(_element.array_id));
+			argument[_i].id = array_length(nested_nodes);
+			array_push(nested_nodes, variable_clone(argument[_i]));	
+			array_push(nested_depth_order, variable_clone(argument[_i].id));
 			
-			if (_element.transform.size.x > transform.fixed.size.x && _element.transform.size.y > transform.fixed.size.y)
+			if (argument[_i].transform.size.x > transform.fixed.size.x && argument[_i].transform.size.y > transform.fixed.size.y)
 			{
-				node_set_size(_element.transform.fixed.size.x, _element.transform.fixed.size.y);	
+				node_set_size(argument[_i].transform.fixed.size.x, argument[_i].transform.fixed.size.y);	
 			}
-			_element.transform.parent = transform; 
+			argument[_i].transform.parent = transform; 
 		}		
 		nested_nodes_amnt = array_length(nested_nodes);
 		return self;
@@ -422,22 +383,16 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		depth = _depth;
 		return self;
 	}
-		
+	
 	///@function						node_set_position(_x, _y)
 	///@description						Set the node position on the canvas
 	///@param {real} _x					X position in pixels
 	///@param {real} _y					Y position in pixels
 	static node_set_position = function(_x, _y)
 	{
-		transform.fixed.position.x = round(variable_clone(_x));
-		transform.fixed.position.y = round(variable_clone(_y));	
-		
-		transform.local.position.x = round(variable_clone(_x));
-		transform.local.position.y = round(variable_clone(_y));	
-		
-		transform.fixed_local.position.x = round(variable_clone(_x));
-		transform.fixed_local.position.y = round(variable_clone(_y));	
-		
+		transform.fixed.position.x = round(_x);
+		transform.fixed.position.y = round(_y);	
+						
 		return self;
 	}
 	
@@ -449,9 +404,6 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	{
 		transform.fixed.scale.x = _x;
 		transform.fixed.scale.y = _y;
-		
-		transform.local.scale.x = _x;
-		transform.local.scale.y = _y;
 		
 		return self;
 	}
@@ -580,8 +532,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _rotation			Rotation in degrees
 	static node_transform_rotate = function(_rotation)
 	{
-		transform.rotation +=  _rotation;
-		transform.local.rotation += _rotation;
+		transform.rotation = transform.parent_rotation + _rotation;
+		transform.self_rotation = _rotation;
 		__rotate_nested();
 	}
 	
@@ -591,11 +543,8 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y scale (Height, vertical, Y)
 	static node_transform_scale = function(_x, _y)
 	{
-		transform.local.scale.x += _x;
-		transform.local.scale.y += _y;	
-		
-		transform.scale.x += _x;
-		transform.scale.y += _y;	
+		transform.scale.x = _x;
+		transform.scale.y = _y;	
 		
 		update_nested_transform();	
 	}
@@ -606,11 +555,11 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@param {real} _y					Y amount of pixels
 	static node_transform_move = function(_x, _y)
 	{
-		transform.local.position.x += _x;
-		transform.local.position.y += _y;
-		
 		transform.position.x += _x;
 		transform.position.y += _y;
+		
+		transform.self_position.x += _x;
+		transform.self_position.y += _y;	
 
 		update_nested_transform();
 	}
@@ -621,7 +570,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	static node_transform_alpha = function(_alpha)
 	{
 		transform.alpha += _alpha;
-		transform.local.alpha += _alpha;	
+		transform.self_alpha = _alpha;	
 
 		update_nested_transform();
 	}
@@ -632,7 +581,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	static node_transform_set_alpha = function(_alpha)
 	{
 		transform.alpha = _alpha;
-		transform.local.alpha = _alpha;	
+		transform.self_alpha = _alpha;	
 
 		update_nested_transform();
 	}
@@ -640,12 +589,6 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	#endregion
 	
 	#region COMPONENTS
-			
-	//Components 
-	renderer = new __node_renderer(self);
-	processor = new __node_processor(self);
-	animator = noone;
-	navigator = noone;
 	
 	///@function		add_component_renderer()
 	///@description		Add a renderer component to the node
@@ -690,7 +633,6 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		navigator.owner = _owner;	
 	}
 	
-	
 	#endregion	
 	
 	custom_awake = function()
@@ -702,45 +644,32 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Run methods to update and start node
 	__awake = function()
 	{
-		// Build Node Path System
 		__build_node_path();
-		
-		// Initiate Transform
 		transform.__initiate_transform();
 		transform.__transform_recalculate();
 		__node_get_system_origin_offset();	
 		
-		// Call awake on nested nodes
 		nested_depth_order = node_array_sort_by_depth(nested_nodes,nested_depth_order);				
 		for (var _i = 0; _i < nested_nodes_amnt; _i++)
 		{
 			var _node = nested_nodes[_i];
 			_node.__awake();			
 		}
+		transform.__reset_to_start();
 		
-		update_nested_transform();
+		update_nested_transform();	
 		
-		// Bring node to start transform
-		for (var _i = 0; _i < nested_nodes_amnt; _i++)
-		{
-			var _node = nested_nodes[_i];
-			_node.transform.__reset_to_start();;			
-		}
-						
-		// Run custom awake function
-		custom_awake();			
+		__reset_nested_nodes_to_start();
+		custom_awake();		
 	}
 }
 
  function __node_transform() : MiniTransform() constructor
 {
 	owner = noone;
-	
+
 	fixed = variable_clone(local);
-	fixed_local = variable_clone(local);
 	offset = new Vector2(0,0);	
-	
-	__fixed_parent_set = false;
 	
 	start = {};
 	with (start)
@@ -748,7 +677,7 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		position = noone;
 		scale = noone;
 		alpha = noone;		
-		rotation = noone;
+		rotation = noone;	
 		size = noone;
 		offset = noone;	
 	}
@@ -762,12 +691,36 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 		local.alpha = variable_clone(fixed.alpha);			
 		local.rotation = variable_clone(fixed.rotation);
 		
-		fixed_local = variable_clone(local);
-		
 		__transform_calculate_size();
 		__transform_recalculate();
 	}
-
+	
+	///@function		__containter_update()
+	///@description		Update attribute safter being organized by a container
+	static __containter_update = function()
+	{
+		local.position = variable_clone(fixed.position);	
+		local.scale = variable_clone(fixed.scale);				
+		local.alpha = variable_clone(fixed.alpha);			
+		local.rotation = variable_clone(fixed.rotation);
+		
+		fixed.position.x = parent.position.x + local.position.x;
+		fixed.position.y = parent.position.y + local.position.y;
+		fixed.alpha = local.alpha * alpha;
+		fixed.scale.x = local.scale.x * parent.scale.x;
+		fixed.scale.y = local.scale.y * parent.scale.y;
+		fixed.rotation = local.rotation + rotation;
+		
+		position = variable_clone(fixed.position);
+		scale = variable_clone(fixed.scale);
+		alpha = variable_clone(fixed.alpha);
+		rotation = variable_clone(fixed.rotation);
+		
+		__transform_recalculate();
+		
+		if (owner != noone) owner.update_nested_transform();
+	}	
+	
 	///@function		__transform_calculate_size()
 	///@description		Recalculate node size and scale
 	static __transform_calculate_size = function()
@@ -787,26 +740,14 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 			parent.alpha = variable_clone(_parent.alpha);	
 			parent.rotation = variable_clone(_parent.rotation);	
 			parent.size = variable_clone(_parent.size);
-
-			if (!__fixed_parent_set)
-			{
-				fixed.position.x = _parent.fixed.position.x + fixed_local.position.x;
-				fixed.position.y = _parent.fixed.position.y + fixed_local.position.y;
-				fixed.scale.x = _parent.fixed.scale.x * fixed_local.scale.x;
-				fixed.scale.y = _parent.fixed.scale.y * fixed_local.scale.y;
-				fixed.alpha = _parent.alpha * fixed_local.alpha;
-				fixed.rotation = _parent.rotation + fixed_local.rotation;
-			
-				__fixed_parent_set = true;
-			}
 		}
+		
+		position.x = local.position.x + offset.x + parent.position.x;
+		position.y = local.position.y + offset.y + parent.position.y;
 		
 		scale.x = local.scale.x * parent.scale.x;
 		scale.y = local.scale.y * parent.scale.y;
-		
-		position.x = (local.position.x + offset.x) + parent.position.x;
-		position.y = (local.position.y + offset.y) + parent.position.y;
-							
+			
 		alpha = local.alpha * parent.alpha;
 		
 		rotation = local.rotation + parent.rotation;		
@@ -818,12 +759,10 @@ function node(_name, _origin = NODE_ORIGIN.MIDDLE_CENTER) constructor
 	///@description		Set the active variables to the start variables (Used when animating nodes)
 	static __reset_to_start = function()
 	{
-		local.position = start.position != noone ? variable_clone(start.position) : variable_clone(fixed_local.position);
-		local.scale = start.scale != noone ? variable_clone(start.scale) : variable_clone(fixed_local.scale);
-		local.alpha = start.alpha != noone ? variable_clone(start.alpha) : variable_clone(fixed_local.alpha);
-		local.rotation = start.rotation != noone ? variable_clone(start.rotation) : variable_clone(fixed_local.rotation);
-
-		__transform_recalculate();
+		position = start.position != noone ? variable_clone(start.position) : position;
+		scale = start.scale != noone ? variable_clone(start.scale) : scale;
+		alpha = start.alpha != noone ? variable_clone(start.alpha) : alpha;
+		rotation = start.rotation != noone ? variable_clone(start.rotation) : rotation;
 	}
 	
 	
